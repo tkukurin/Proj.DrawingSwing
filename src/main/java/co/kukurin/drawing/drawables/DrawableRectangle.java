@@ -1,4 +1,4 @@
-package co.kukurin.drawing;
+package co.kukurin.drawing.drawables;
 
 import java.awt.*;
 

@@ -1,6 +1,6 @@
-package co.kukurin;
+package co.kukurin.drawing;
 
-import co.kukurin.drawing.Drawable;
+import co.kukurin.drawing.drawables.Drawable;
 
 import java.util.Collection;
 

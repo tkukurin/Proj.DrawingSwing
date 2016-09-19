@@ -1,12 +1,9 @@
-package co.kukurin;
+package co.kukurin.drawing;
 
-import co.kukurin.drawing.Drawable;
+import co.kukurin.drawing.drawables.Drawable;
 
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.stream.Stream;
 
 public class DrawingModelImpl implements DrawingModel {
 
