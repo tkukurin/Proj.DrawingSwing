@@ -4,6 +4,7 @@ import co.kukurin.actions.KeyListenerFactory;
 import co.kukurin.actions.MouseListenerFactory;
 import co.kukurin.custom.Optional;
 import co.kukurin.drawing.Drawable;
+import co.kukurin.drawing.DrawableProducer;
 import co.kukurin.drawing.DrawableRectangle;
 import lombok.extern.slf4j.Slf4j;
 
@@ -11,7 +12,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
-import java.util.function.BiFunction;
 
 @Slf4j
 public class DrawingPanel extends JPanel {
@@ -19,10 +19,10 @@ public class DrawingPanel extends JPanel {
     private static final Cursor moveCursor = new Cursor(Cursor.MOVE_CURSOR);
     private static final Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
 
-    private BiFunction<Integer, Integer, Drawable> currentSelectedDrawableSupplier;
+    private DrawableProducer activeDrawableProducer;
     private Drawable elementCurrentlyBeingDrawn;
     private DrawingModel drawingModel;
-    private Rectangle currentPosition;
+    private Point originLocation;
     private Point cachedMousePosition;
     private boolean isMouseDown;
     private boolean isSpaceDown;
@@ -33,9 +33,10 @@ public class DrawingPanel extends JPanel {
                  int preferredWidth,
                  int preferredHeight) {
         this.drawingModel = drawingModel;
-        this.currentPosition = new Rectangle(startX, startY, preferredWidth, preferredHeight);
+        this.originLocation = new Point(startX, startY);
         this.isMouseDown = false;
-        this.currentSelectedDrawableSupplier = DrawableRectangle::new;
+        this.activeDrawableProducer = DrawableRectangle::new;
+        this.elementCurrentlyBeingDrawn = null;
 
         this.setBackground(Color.WHITE);
         this.setPreferredSize(new Dimension(preferredWidth, preferredHeight));
@@ -50,6 +51,7 @@ public class DrawingPanel extends JPanel {
         this.requestFocusInWindow();
     }
 
+    // TODO move those if statements into polymorphic behavior
     private void mousePressed(MouseEvent mouseEvent) {
         if(!this.isMouseDown) {
             this.cachedMousePosition = mouseEvent.getPoint();
@@ -57,7 +59,7 @@ public class DrawingPanel extends JPanel {
 
         if(!this.isSpaceDown) {
             newDrawableFromSelected(mouseEvent)
-                    .ifPresent((drawable) -> {
+                    .ifPresent(drawable -> {
                         this.drawingModel.addDrawable(drawable);
                         this.elementCurrentlyBeingDrawn = drawable;
                     });
@@ -67,11 +69,14 @@ public class DrawingPanel extends JPanel {
         this.repaint();
     }
 
+    // TODO store (x,y,color,color) inside model?
     private Optional<Drawable> newDrawableFromSelected(MouseEvent mouseEvent) {
-        return Optional.ofNullable(this.currentSelectedDrawableSupplier)
-                .map(selectedDrawable -> selectedDrawable.apply(
-                        mouseEvent.getX() - this.currentPosition.x,
-                        mouseEvent.getY() - this.currentPosition.y));
+        return Optional.ofNullable(this.activeDrawableProducer)
+                .map(selectedDrawable -> selectedDrawable.create(
+                        mouseEvent.getX() - this.originLocation.x,
+                        mouseEvent.getY() - this.originLocation.y,
+                        Color.BLACK,
+                        Color.WHITE));
     }
 
     private void mouseReleased(MouseEvent mouseEvent) {
@@ -82,23 +87,23 @@ public class DrawingPanel extends JPanel {
 
     private void mouseDragged(MouseEvent mouseEvent) {
         if(this.isSpaceDown) {
-            this.currentPosition = updateOrigin(mouseEvent);
+            this.originLocation = updateOrigin(mouseEvent);
             this.cachedMousePosition = mouseEvent.getPoint();
         } else {
             Optional.ofNullable(elementCurrentlyBeingDrawn)
                     .ifPresent(element -> element.updateEndingPoint(
-                            mouseEvent.getX() - this.currentPosition.x,
-                            mouseEvent.getY() - this.currentPosition.y));
+                            mouseEvent.getX() - this.originLocation.x,
+                            mouseEvent.getY() - this.originLocation.y));
         }
 
         this.repaint();
     }
 
-    private Rectangle updateOrigin(MouseEvent mouseEvent) {
+    private Point updateOrigin(MouseEvent mouseEvent) {
         int deltaX = mouseEvent.getX() - this.cachedMousePosition.x;
         int deltaY = mouseEvent.getY() - this.cachedMousePosition.y;
-        this.currentPosition.setLocation(this.currentPosition.x + deltaX, this.currentPosition.y + deltaY);
-        return this.currentPosition;
+        this.originLocation.setLocation(this.originLocation.x + deltaX, this.originLocation.y + deltaY);
+        return this.originLocation;
     }
 
     private void keyPressed(KeyEvent keyEvent) {
@@ -120,9 +125,9 @@ public class DrawingPanel extends JPanel {
         super.paint(g);
         Graphics2D graphics2D = (Graphics2D) g;
 
-        // TODO "lazy draw"
+        // TODO "lazy drawDelegate"
         this.drawingModel.getDrawables().stream()
-                .forEach(drawable -> drawable.draw(graphics2D, this.currentPosition.x, this.currentPosition.y));
+                .forEach(drawable -> drawable.draw(graphics2D, this.originLocation.x, this.originLocation.y));
     }
 
 }
