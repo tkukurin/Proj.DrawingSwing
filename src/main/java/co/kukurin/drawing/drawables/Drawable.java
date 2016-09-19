@@ -23,7 +23,7 @@ public abstract class Drawable {
     }
 
     public abstract void updateEndingPoint(int basePositionX, int basePositionY);
-    public abstract Rectangle getBoundingBox(int basePositionX, int basePositionY);
+    public abstract Rectangle getAbsolutePositionedBoundingBox();
 
     protected abstract void drawDelegate(Graphics2D graphics2D, int basePositionX, int basePositionY);
 

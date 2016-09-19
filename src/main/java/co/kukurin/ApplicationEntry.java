@@ -20,7 +20,7 @@ public class ApplicationEntry {
         DrawingAttributes drawingAttributes = new DrawingAttributes(new Point(0, 0), Color.BLACK, Color.WHITE);
         DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableRectangle::new, null, null, false, false);
         DrawingPanel drawingPanel = new DrawingPanel(drawingModel, drawingPanelState, drawingAttributes);
-        DrawingAttributesPanel drawingAttributesPanel = new DrawingAttributesPanel();
+        DrawingAttributesPanel drawingAttributesPanel = new DrawingAttributesPanel(drawingAttributes);
         Dimension preferredSize = new Dimension(600, 600);
 
         return new Application(drawingPanel, drawingAttributesPanel, preferredSize);

@@ -25,9 +25,8 @@ public class DrawableRectangle extends Drawable {
         this.end.y = screenPositionY;
     }
 
-    // TODO remove basePositions
     @Override
-    public Rectangle getBoundingBox(int basePositionX, int basePositionY) {
+    public Rectangle getAbsolutePositionedBoundingBox() {
         return getAsRectangleRelativeTo(0, 0);
     }
 
