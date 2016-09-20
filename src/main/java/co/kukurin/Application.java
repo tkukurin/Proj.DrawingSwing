@@ -1,7 +1,7 @@
 package co.kukurin;
 
-import co.kukurin.drawing.gui.DrawingAttributesPanel;
-import co.kukurin.drawing.gui.DrawingPanel;
+import co.kukurin.drawing.attributes.DrawingAttributesPanel;
+import co.kukurin.drawing.panel.DrawingPanel;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;

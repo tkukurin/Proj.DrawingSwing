@@ -1,4 +1,4 @@
-package co.kukurin.drawing;
+package co.kukurin.drawing.attributes;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

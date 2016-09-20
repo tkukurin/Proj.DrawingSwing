@@ -1,8 +1,6 @@
-package co.kukurin.drawing.gui;
+package co.kukurin.drawing.panel;
 
-import co.kukurin.drawing.DrawingAttributes;
-import co.kukurin.drawing.DrawingModel;
-import co.kukurin.drawing.DrawingPanelState;
+import co.kukurin.drawing.attributes.DrawingAttributes;
 import co.kukurin.actions.KeyListenerFactory;
 import co.kukurin.actions.MouseListenerFactory;
 import co.kukurin.custom.Optional;

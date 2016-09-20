@@ -1,4 +1,4 @@
-package co.kukurin.drawing.gui;
+package co.kukurin.drawing.attributes.components;
 
 import javax.swing.*;
 import java.awt.*;

@@ -1,6 +1,6 @@
-package co.kukurin.drawing.gui;
+package co.kukurin.drawing.attributes;
 
-import co.kukurin.drawing.DrawingAttributes;
+import co.kukurin.drawing.attributes.components.ColorPickerPanel;
 
 import javax.swing.*;
 

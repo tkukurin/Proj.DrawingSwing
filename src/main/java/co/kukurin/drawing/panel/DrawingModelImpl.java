@@ -1,4 +1,4 @@
-package co.kukurin.drawing;
+package co.kukurin.drawing.panel;
 
 import co.kukurin.drawing.drawables.Drawable;
 

@@ -1,9 +1,12 @@
 package co.kukurin;
 
-import co.kukurin.drawing.*;
+import co.kukurin.drawing.attributes.DrawingAttributes;
 import co.kukurin.drawing.drawables.DrawableRectangle;
-import co.kukurin.drawing.gui.DrawingAttributesPanel;
-import co.kukurin.drawing.gui.DrawingPanel;
+import co.kukurin.drawing.attributes.DrawingAttributesPanel;
+import co.kukurin.drawing.panel.DrawingModel;
+import co.kukurin.drawing.panel.DrawingModelImpl;
+import co.kukurin.drawing.panel.DrawingPanel;
+import co.kukurin.drawing.panel.DrawingPanelState;
 
 import javax.swing.*;
 import java.awt.*;
