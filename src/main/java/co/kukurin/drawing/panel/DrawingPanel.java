@@ -11,6 +11,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.util.function.Predicate;
 
 @Slf4j
@@ -32,6 +33,7 @@ public class DrawingPanel extends JPanel {
 
         this.setBackground(Color.WHITE);
         this.addMouseMotionListener(MouseListenerFactory.createMouseDragListener(this::mouseDragged));
+        this.addMouseWheelListener(this::scrollWheelMoved);
         this.addMouseListener(MouseListenerFactory.builder()
                 .onPress(this::mousePressed)
                 .onRelease(this::mouseReleased).build());
@@ -43,10 +45,19 @@ public class DrawingPanel extends JPanel {
         this.requestFocusInWindow();
     }
 
+    private void scrollWheelMoved(MouseWheelEvent mouseWheelEvent) {
+        int rotation = mouseWheelEvent.getWheelRotation();
+        double scale = this.drawingAttributes.getScale();
+
+        this.drawingAttributes.setScale(Math.max(0.25, scale + rotation * 0.25));
+        this.repaint();
+    }
+
     // TODO move those if statements into polymorphic behavior
     private void mousePressed(MouseEvent mouseEvent) {
         if (!this.drawingPanelState.isMouseDown()) {
             this.drawingPanelState.setCachedMousePosition(mouseEvent.getPoint());
+            this.drawingPanelState.setCachedTopLeftReferencePosition(this.drawingAttributes.getTopLeftReferencePoint());
         }
 
         if (!this.drawingPanelState.isSpaceDown()) {
@@ -72,6 +83,8 @@ public class DrawingPanel extends JPanel {
     }
 
     private void mouseReleased(MouseEvent mouseEvent) {
+        log.info("origin position {}", this.drawingAttributes.getTopLeftReferencePoint());
+
         this.drawingPanelState.setMouseDown(false);
         this.drawingPanelState.setElementCurrentlyBeingDrawn(null);
         this.repaint();
@@ -94,10 +107,16 @@ public class DrawingPanel extends JPanel {
 
     private Point updateOrigin(Point currentOrigin, MouseEvent mouseEvent) {
         // move background opposite to the mouse direction
-        int deltaX = this.drawingPanelState.getCachedMousePosition().x - mouseEvent.getX();
-        int deltaY = mouseEvent.getY() - this.drawingPanelState.getCachedMousePosition().y;
-        currentOrigin.setLocation(currentOrigin.x + deltaX, currentOrigin.y + deltaY);
+        // TODO fix change of drawing point after move
+        Point mouseEventPoint = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getPoint());
+        Point cachedMousePoint = getCoordinateSystemAbsolutePositionFromScreenPosition(this.drawingPanelState.getCachedMousePosition());
+
+        double deltaX = cachedMousePoint.getX() - mouseEventPoint.getX();
+        double deltaY = mouseEventPoint.getY() - cachedMousePoint.getY();
+
+        currentOrigin.setLocation(currentOrigin.x + deltaX, currentOrigin.y - deltaY);
         return currentOrigin;
+
     }
 
     private void keyPressed(KeyEvent keyEvent) {
@@ -120,14 +139,22 @@ public class DrawingPanel extends JPanel {
         Graphics2D graphics2D = (Graphics2D) g;
 
         Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
+        double scale = this.drawingAttributes.getScale();
         this.drawingModel.getDrawables().stream()
                 .filter(this::isWithinBounds)
-                .forEach(drawable -> drawable.draw(graphics2D, originLocation.x, originLocation.y));
+                .forEach(drawable -> drawable.draw(graphics2D, originLocation.x, originLocation.y, scale));
+    }
+
+    private Point getCoordinateSystemAbsolutePositionFromScreenPosition(Point point) {
+        return this.getCoordinateSystemAbsolutePositionFromScreenPosition(point.x, point.y);
     }
 
     private Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
         Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
-        return new Point(topLeft.x + screenX, topLeft.y - screenY);
+        double scaleFactor = this.drawingAttributes.getScale();
+        return new Point(
+                (int) ((topLeft.x + screenX) * scaleFactor),
+                (int) ((topLeft.y - screenY) * scaleFactor));
     }
 
     private boolean isWithinBounds(Drawable drawable) {

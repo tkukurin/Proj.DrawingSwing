@@ -16,15 +16,26 @@ public abstract class Drawable {
         this.background = background;
     }
 
-    public void draw(Graphics2D graphics2D, int basePositionX, int basePositionY) {
+    public void draw(Graphics2D graphics2D, int basePositionX, int basePositionY, double scaleFactor) {
         Color cached = graphics2D.getColor();
-        drawDelegate(graphics2D, basePositionX, basePositionY);
+        drawDelegate(graphics2D, getAsRectangleRelativeTo(basePositionX, basePositionY, scaleFactor));
         graphics2D.setColor(cached);
     }
 
-    public abstract void updateEndingPoint(int basePositionX, int basePositionY);
-    public abstract Rectangle getAbsolutePositionedBoundingBox();
+    public void updateEndingPoint(int coordinateSystemX, int coordinateSystemY) {
+        this.movablePoint.x = coordinateSystemX;
+        this.movablePoint.y = coordinateSystemY;
+    }
 
-    protected abstract void drawDelegate(Graphics2D graphics2D, int basePositionX, int basePositionY);
+    protected Rectangle getAsRectangleRelativeTo(int topLeftOriginX, int topLeftOriginY, double scaleFactor) {
+        int width = (int) (Math.abs(this.fixedPoint.x - this.movablePoint.x) / scaleFactor);
+        int height = (int) (Math.abs(this.fixedPoint.y - this.movablePoint.y) / scaleFactor);
+        int relativeX = (int) ((Math.min(this.fixedPoint.x, this.movablePoint.x) - topLeftOriginX) / scaleFactor);
+        int relativeY = (int) ((topLeftOriginY - Math.max(this.fixedPoint.y, this.movablePoint.y)) / scaleFactor);
+        return new Rectangle(relativeX, relativeY, width, height);
+    }
+
+    public abstract Rectangle getAbsolutePositionedBoundingBox();
+    protected abstract void drawDelegate(Graphics2D graphics2D, Rectangle mouseOutlineRectangle);
 
 }

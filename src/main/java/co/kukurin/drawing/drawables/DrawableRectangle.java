@@ -14,33 +14,17 @@ public class DrawableRectangle extends Drawable {
     }
 
     @Override
-    public void drawDelegate(Graphics2D graphics2D, int topLeftOriginX, int topLeftOriginY) {
-        Rectangle relativeRectangle = getAsRectangleRelativeTo(topLeftOriginX, topLeftOriginY);
+    public Rectangle getAbsolutePositionedBoundingBox() {
+        return getAsRectangleRelativeTo(0, 0, 1.0);
+    }
 
+    @Override
+    protected void drawDelegate(Graphics2D graphics2D, Rectangle mouseOutlineRectangle) {
         graphics2D.setColor(this.background);
-        graphics2D.fill(relativeRectangle);
+        graphics2D.fill(mouseOutlineRectangle);
 
         graphics2D.setColor(this.foreground);
-        graphics2D.draw(relativeRectangle);
-    }
-
-    @Override
-    public void updateEndingPoint(int coordinateSystemX, int coordinateSystemY) {
-        this.movablePoint.x = coordinateSystemX;
-        this.movablePoint.y = coordinateSystemY;
-    }
-
-    @Override
-    public Rectangle getAbsolutePositionedBoundingBox() {
-        return getAsRectangleRelativeTo(0, 0);
-    }
-
-    private Rectangle getAsRectangleRelativeTo(int topLeftOriginX, int topLeftOriginY) {
-        int width = Math.abs(this.fixedPoint.x - this.movablePoint.x);
-        int height = Math.abs(this.fixedPoint.y - this.movablePoint.y);
-        int relativeX = Math.min(this.fixedPoint.x, this.movablePoint.x) - topLeftOriginX;
-        int relativeY = topLeftOriginY - Math.max(this.fixedPoint.y, this.movablePoint.y);
-        return new Rectangle(relativeX, relativeY, width, height);
+        graphics2D.draw(mouseOutlineRectangle);
     }
 
 }

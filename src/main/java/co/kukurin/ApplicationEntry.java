@@ -11,7 +11,6 @@ import co.kukurin.drawing.panel.DrawingPanelState;
 import javax.swing.*;
 import java.awt.*;
 
-// TODO color inject, change drawingattributes to the panel
 public class ApplicationEntry {
 
     public static void main(String[] args) {
@@ -20,8 +19,9 @@ public class ApplicationEntry {
 
     private static Application defaultApplication() {
         DrawingModel drawingModel = new DrawingModelImpl();
-        DrawingAttributes drawingAttributes = new DrawingAttributes(new Point(0, 0), Color.BLACK, Color.WHITE);
-        DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableRectangle::new, null, null, false, false);
+        Point origin = new Point(0, 0);
+        DrawingAttributes drawingAttributes = new DrawingAttributes(origin, 0.5, Color.BLACK, Color.WHITE);
+        DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableRectangle::new, null, origin, null, false, false);
         DrawingPanel drawingPanel = new DrawingPanel(drawingModel, drawingPanelState, drawingAttributes);
         DrawingAttributesPanel drawingAttributesPanel = new DrawingAttributesPanel(drawingAttributes);
         Dimension preferredSize = new Dimension(600, 600);
