@@ -4,14 +4,14 @@ import java.awt.*;
 
 public abstract class Drawable {
 
-    protected Point start;
-    protected Point end;
+    protected Point fixedPoint;
+    protected Point movablePoint;
     protected Color foreground;
     protected Color background;
 
-    Drawable(int startX, int startY, Color foreground, Color background) {
-        this.start = new Point(startX, startY);
-        this.end = new Point(startX, startY);
+    Drawable(int coordinateSystemX, int coordinateSystemY, Color foreground, Color background) {
+        this.fixedPoint = new Point(coordinateSystemX, coordinateSystemY);
+        this.movablePoint = new Point(coordinateSystemX, coordinateSystemY);
         this.foreground = foreground;
         this.background = background;
     }

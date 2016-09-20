@@ -1,16 +1,21 @@
 package co.kukurin.drawing.drawables;
 
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+
 import java.awt.*;
 
+@Slf4j
+@ToString
 public class DrawableRectangle extends Drawable {
 
-    public DrawableRectangle(int x, int y, Color foreground, Color background) {
-        super(x, y, foreground, background);
+    public DrawableRectangle(int coordinateSystemX, int coordinateSystemY, Color foreground, Color background) {
+        super(coordinateSystemX, coordinateSystemY, foreground, background);
     }
 
     @Override
-    public void drawDelegate(Graphics2D graphics2D, int screenPositionX, int screenPositionY) {
-        Rectangle relativeRectangle = getAsRectangleRelativeTo(screenPositionX, screenPositionY);
+    public void drawDelegate(Graphics2D graphics2D, int topLeftOriginX, int topLeftOriginY) {
+        Rectangle relativeRectangle = getAsRectangleRelativeTo(topLeftOriginX, topLeftOriginY);
 
         graphics2D.setColor(this.background);
         graphics2D.fill(relativeRectangle);
@@ -20,9 +25,9 @@ public class DrawableRectangle extends Drawable {
     }
 
     @Override
-    public void updateEndingPoint(int screenPositionX, int screenPositionY) {
-        this.end.x = screenPositionX;
-        this.end.y = screenPositionY;
+    public void updateEndingPoint(int coordinateSystemX, int coordinateSystemY) {
+        this.movablePoint.x = coordinateSystemX;
+        this.movablePoint.y = coordinateSystemY;
     }
 
     @Override
@@ -30,12 +35,12 @@ public class DrawableRectangle extends Drawable {
         return getAsRectangleRelativeTo(0, 0);
     }
 
-    private Rectangle getAsRectangleRelativeTo(int screenPositionX, int screenPositionY) {
-        int w = Math.abs(this.start.x - this.end.x);
-        int h = Math.abs(this.start.y - this.end.y);
-        int lx = Math.min(this.start.x, this.end.x) + screenPositionX;
-        int ly = Math.min(this.start.y, this.end.y) + screenPositionY;
-        return new Rectangle(lx, ly, w, h);
+    private Rectangle getAsRectangleRelativeTo(int topLeftOriginX, int topLeftOriginY) {
+        int width = Math.abs(this.fixedPoint.x - this.movablePoint.x);
+        int height = Math.abs(this.fixedPoint.y - this.movablePoint.y);
+        int relativeX = Math.min(this.fixedPoint.x, this.movablePoint.x) - topLeftOriginX;
+        int relativeY = topLeftOriginY - Math.max(this.fixedPoint.y, this.movablePoint.y);
+        return new Rectangle(relativeX, relativeY, width, height);
     }
 
 }

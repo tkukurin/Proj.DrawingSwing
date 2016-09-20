@@ -6,7 +6,5 @@ import java.awt.*;
 
 @FunctionalInterface
 public interface DrawableProducer {
-    //Drawable create(int baseX, int baseY);
-
-    Drawable create(int baseX, int baseY, Color foreground, Color background);
+    Drawable create(int coordinateSystemX, int coordinateSystemY, Color foreground, Color background);
 }
