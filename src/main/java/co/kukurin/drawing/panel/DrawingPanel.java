@@ -49,7 +49,11 @@ public class DrawingPanel extends JPanel {
         int rotation = mouseWheelEvent.getWheelRotation();
         double scale = this.drawingAttributes.getScale();
 
-        this.drawingAttributes.setScale(Math.max(0.25, scale + rotation * 0.25));
+        //this.drawingAttributes.setScale(Math.max(0.25, scale + rotation * 0.25));
+        Point currentReference = this.drawingAttributes.getBottomRightReferencePoint();
+        currentReference.x += rotation * 10; // todo max(topleft, current)
+        currentReference.y -= rotation * 10;
+        this.drawingAttributes.setBottomRightReferencePoint(currentReference);
         this.repaint();
     }
 
@@ -95,6 +99,7 @@ public class DrawingPanel extends JPanel {
 
         if (this.drawingPanelState.isSpaceDown()) {
             this.drawingAttributes.setTopLeftReferencePoint(updateOrigin(originLocation, mouseEvent));
+            this.drawingAttributes.setBottomRightReferencePoint(updateOrigin(this.drawingAttributes.getBottomRightReferencePoint(), mouseEvent));
             this.drawingPanelState.setCachedMousePosition(mouseEvent.getPoint());
         } else {
             Point absoluteCoordinates = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getX(), mouseEvent.getY());
@@ -138,10 +143,12 @@ public class DrawingPanel extends JPanel {
         super.paint(g);
         Graphics2D graphics2D = (Graphics2D) g;
 
-        Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
-        double scale = this.drawingAttributes.getScale();
+        final Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
+        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
+        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
+        final double scale = (bottomRight.x - topLeft.x) / (double)this.getWidth();
         this.drawingModel.getDrawables().stream()
-                .filter(this::isWithinBounds)
+                //.filter(this::isWithinBounds)
                 .forEach(drawable -> drawable.draw(graphics2D, originLocation.x, originLocation.y, scale));
     }
 
@@ -151,7 +158,8 @@ public class DrawingPanel extends JPanel {
 
     private Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
         Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
-        double scaleFactor = this.drawingAttributes.getScale();
+        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
+        double scaleFactor = (bottomRight.x - topLeft.x) / (double)this.getWidth();
         return new Point(
                 (int) ((topLeft.x + screenX) * scaleFactor),
                 (int) ((topLeft.y - screenY) * scaleFactor));
@@ -160,7 +168,10 @@ public class DrawingPanel extends JPanel {
     private boolean isWithinBounds(Drawable drawable) {
         Rectangle drawableBounds = drawable.getAbsolutePositionedBoundingBox();
         Rectangle myBounds = Optional.of(this.drawingAttributes.getTopLeftReferencePoint())
-                .map(reference -> new Rectangle(reference.x, reference.y, this.getWidth(), this.getHeight()))
+                .map(reference -> {
+                    Point right = this.drawingAttributes.getBottomRightReferencePoint();
+                    return new Rectangle(reference.x, reference.y, right.x, -right.y);
+                })
                 .get();
 
         Predicate<Integer> testX = i -> i >= myBounds.x && i <= myBounds.x + myBounds.width;

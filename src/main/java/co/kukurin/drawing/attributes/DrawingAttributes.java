@@ -12,6 +12,7 @@ import java.awt.*;
 public class DrawingAttributes {
 
     private Point topLeftReferencePoint;
+    private Point bottomRightReferencePoint;
     private double scale;
     private Color selectedForegroundColor;
     private Color selectedBackgroundColor;
