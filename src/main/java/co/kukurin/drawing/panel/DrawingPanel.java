@@ -1,5 +1,6 @@
 package co.kukurin.drawing.panel;
 
+import co.kukurin.actions.ComponentListenerFactory;
 import co.kukurin.drawing.attributes.DrawingAttributes;
 import co.kukurin.actions.KeyListenerFactory;
 import co.kukurin.actions.MouseListenerFactory;
@@ -9,9 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseWheelEvent;
+import java.awt.event.*;
 import java.util.function.Predicate;
 
 @Slf4j
@@ -33,6 +32,7 @@ public class DrawingPanel extends JPanel {
 
         this.setBackground(Color.WHITE);
         this.addMouseMotionListener(MouseListenerFactory.createMouseDragListener(this::mouseDragged));
+        this.addComponentListener(ComponentListenerFactory.createResizeListener(this::onResize));
         this.addMouseWheelListener(this::scrollWheelMoved);
         this.addMouseListener(MouseListenerFactory.builder()
                 .onPress(this::mousePressed)
@@ -45,15 +45,27 @@ public class DrawingPanel extends JPanel {
         this.requestFocusInWindow();
     }
 
+    private void onResize(ComponentEvent componentEvent) {
+        Point bottomRightAfterResize = getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight());
+        drawingAttributes.setBottomRightReferencePoint(bottomRightAfterResize);
+    }
+
     private void scrollWheelMoved(MouseWheelEvent mouseWheelEvent) {
         int rotation = mouseWheelEvent.getWheelRotation();
+        double scale = this.getWidth() / (double) this.getHeight();
 
-        // TODO resize according to current x:y relationship
         Point currentReference = this.drawingAttributes.getBottomRightReferencePoint();
-        currentReference.x += rotation * 10; // todo max(topleft, current)
+        currentReference.x += rotation * 10 * scale; // todo max(topleft, current)
         currentReference.y -= rotation * 10;
 
-        this.drawingAttributes.setBottomRightReferencePoint(currentReference);
+        Point currentOrigin = this.drawingAttributes.getTopLeftReferencePoint();
+        if(currentOrigin.x < currentReference.x
+                && currentOrigin.y > currentReference.y) {
+            this.drawingAttributes.setBottomRightReferencePoint(currentReference);
+        } else {
+            log.debug("reached largest available size");
+        }
+
         this.repaint();
     }
 
@@ -98,8 +110,11 @@ public class DrawingPanel extends JPanel {
         Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
 
         if (this.drawingPanelState.isSpaceDown()) {
-            this.drawingAttributes.setTopLeftReferencePoint(updateOrigin(originLocation, mouseEvent));
-            this.drawingAttributes.setBottomRightReferencePoint(updateOrigin(this.drawingAttributes.getBottomRightReferencePoint(), mouseEvent));
+            this.drawingAttributes.setTopLeftReferencePoint(
+                    updatePositionAccordingToMouseDelta(originLocation, mouseEvent));
+            this.drawingAttributes.setBottomRightReferencePoint(
+                    updatePositionAccordingToMouseDelta(this.drawingAttributes.getBottomRightReferencePoint(), mouseEvent));
+
             this.drawingPanelState.setCachedMousePosition(mouseEvent.getPoint());
         } else {
             Point absoluteCoordinates = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getX(), mouseEvent.getY());
@@ -110,7 +125,7 @@ public class DrawingPanel extends JPanel {
         this.repaint();
     }
 
-    private Point updateOrigin(Point currentOrigin, MouseEvent mouseEvent) {
+    private Point updatePositionAccordingToMouseDelta(Point currentOrigin, MouseEvent mouseEvent) {
         // move background opposite to the mouse direction
         // TODO fix change of drawing point after move
         Point mouseEventPoint = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getPoint());
@@ -159,27 +174,23 @@ public class DrawingPanel extends JPanel {
     private Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
         Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
         Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
-        double scaleFactor = (bottomRight.x - topLeft.x) / (double)this.getWidth();
+        double scaleFactorX = (bottomRight.x - topLeft.x) / (double)this.getWidth();
         return new Point(
-                (int) ((topLeft.x + screenX) * scaleFactor),
-                (int) ((topLeft.y - screenY) * scaleFactor));
+                (int) (topLeft.x + (screenX) * scaleFactorX),
+                (int) (topLeft.y - (screenY) * scaleFactorX));
     }
 
     // "almost" working. probably will be fixed when the x:y relationship issue is resolved
     private boolean isWithinBounds(Drawable drawable) {
         Rectangle drawableBounds = drawable.getAbsolutePositionedBoundingBox();
-        Rectangle myBounds = Optional.of(this.drawingAttributes.getTopLeftReferencePoint())
-                .map(reference -> {
-                    Point right = this.drawingAttributes.getBottomRightReferencePoint();
-                    return new Rectangle(reference.x, reference.y, right.x - reference.x, reference.y - right.y);
-                })
-                .get();
+        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
+        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
 
-        Predicate<Integer> testX = i -> i >= myBounds.x && i <= myBounds.x + myBounds.width;
-        Predicate<Integer> testY = i -> i <= myBounds.y && i >= myBounds.y - myBounds.height;
+        Predicate<Integer> testX = i -> i >= topLeft.x && i <= bottomRight.x;
+        Predicate<Integer> testY = i -> i <= topLeft.y && i >= bottomRight.y;
 
-        boolean drawableXLargerThanScreen = (drawableBounds.x <= myBounds.x && drawableBounds.x + drawableBounds.width >= myBounds.x + myBounds.width);
-        boolean drawableYLargerThanScreen = (-drawableBounds.y >= myBounds.y && -drawableBounds.y - drawableBounds.height <= myBounds.y - myBounds.height);
+        boolean drawableXLargerThanScreen = (drawableBounds.x <= topLeft.x && drawableBounds.x + drawableBounds.width >= bottomRight.x);
+        boolean drawableYLargerThanScreen = (-drawableBounds.y >= topLeft.y && -drawableBounds.y - drawableBounds.height <= bottomRight.y);
         boolean startingXOrEndingXWithinViewBounds = testX.test(drawableBounds.x) || testX.test(drawableBounds.x + drawableBounds.width);
         boolean startingYOrEndingYWithinViewBounds = testY.test(-drawableBounds.y) || testY.test(-drawableBounds.y - drawableBounds.height);
 

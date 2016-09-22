@@ -20,9 +20,9 @@ public class ApplicationEntry {
     private static Application defaultApplication() {
         DrawingModel drawingModel = new DrawingModelImpl();
         Dimension preferredSize = new Dimension(600, 600);
-        Point origin = new Point(0, 0);
+        Point origin = new Point(0, 0); // TODO turn into rectangle
         Point endpoint = new Point(preferredSize.width, -preferredSize.height);
-        DrawingAttributes drawingAttributes = new DrawingAttributes(origin, endpoint, 0.5, Color.BLACK, Color.WHITE);
+        DrawingAttributes drawingAttributes = new DrawingAttributes(origin, endpoint, Color.BLACK, Color.WHITE);
         DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableRectangle::new, null, origin, null, false, false);
         DrawingPanel drawingPanel = new DrawingPanel(drawingModel, drawingPanelState, drawingAttributes);
         DrawingAttributesPanel drawingAttributesPanel = new DrawingAttributesPanel(drawingAttributes);
