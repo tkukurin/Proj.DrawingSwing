@@ -4,8 +4,11 @@ import co.kukurin.actions.ComponentListenerFactory;
 import co.kukurin.drawing.attributes.DrawingAttributes;
 import co.kukurin.actions.KeyListenerFactory;
 import co.kukurin.actions.MouseListenerFactory;
-import co.kukurin.custom.Optional;
 import co.kukurin.drawing.drawables.Drawable;
+import co.kukurin.drawing.drawables.DrawableProducer;
+import co.kukurin.drawing.panel.mouse.DrawingPanelDrawListener;
+import co.kukurin.drawing.panel.mouse.DrawingPanelMouseListener;
+import co.kukurin.drawing.panel.mouse.DrawingPanelScreenTranslateListener;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
@@ -23,17 +26,26 @@ public class DrawingPanel extends JPanel {
     private DrawingPanelState drawingPanelState;
     private DrawingModel drawingModel;
 
+    private final DrawingPanelDrawListener drawListener;
+    private final DrawingPanelScreenTranslateListener screenTranslateListener;
+    private DrawingPanelMouseListener activeMouseListener;
+
     public DrawingPanel(DrawingModel drawingModel,
                         DrawingPanelState drawingPanelState,
-                        DrawingAttributes drawingAttributes) {
+                        DrawingAttributes drawingAttributes,
+                        DrawingPanelDrawListener drawListener,
+                        DrawingPanelScreenTranslateListener screenTranslateListener) {
         this.drawingModel = drawingModel;
         this.drawingAttributes = drawingAttributes;
         this.drawingPanelState = drawingPanelState;
+        this.drawListener = drawListener;
+        this.screenTranslateListener = screenTranslateListener;
+        this.activeMouseListener = drawListener;
 
         this.setBackground(Color.WHITE);
-        this.addMouseMotionListener(MouseListenerFactory.createMouseDragListener(this::mouseDragged));
         this.addComponentListener(ComponentListenerFactory.createResizeListener(this::onResize));
         this.addMouseWheelListener(this::scrollWheelMoved);
+        this.addMouseMotionListener(MouseListenerFactory.createMouseDragListener(this::mouseDragged));
         this.addMouseListener(MouseListenerFactory.builder()
                 .onPress(this::mousePressed)
                 .onRelease(this::mouseReleased).build());
@@ -43,6 +55,10 @@ public class DrawingPanel extends JPanel {
         this.setFocusable(true);
         this.setBorder(BorderFactory.createEmptyBorder());
         this.requestFocusInWindow();
+    }
+
+    public DrawableProducer getActiveDrawableProducer() {
+        return this.drawingPanelState.getActiveDrawableProducer();
     }
 
     private void onResize(ComponentEvent componentEvent) {
@@ -55,100 +71,44 @@ public class DrawingPanel extends JPanel {
         double scale = this.getWidth() / (double) this.getHeight();
 
         Point currentReference = this.drawingAttributes.getBottomRightReferencePoint();
-        currentReference.x += rotation * 10 * scale; // todo max(topleft, current)
+        currentReference.x += rotation * 10 * scale;
         currentReference.y -= rotation * 10;
 
         Point currentOrigin = this.drawingAttributes.getTopLeftReferencePoint();
-        if(currentOrigin.x < currentReference.x
-                && currentOrigin.y > currentReference.y) {
+        boolean leftXIsSmallerThanRightX = currentOrigin.x < currentReference.x;
+        boolean topYIsLargerThanBottomY = currentOrigin.y > currentReference.y;
+
+        if(leftXIsSmallerThanRightX && topYIsLargerThanBottomY) {
             this.drawingAttributes.setBottomRightReferencePoint(currentReference);
-        } else {
-            log.debug("reached largest available size");
         }
 
         this.repaint();
     }
 
-    // TODO move those if statements into polymorphic behavior
+    // TODO
     private void mousePressed(MouseEvent mouseEvent) {
-        if (!this.drawingPanelState.isMouseDown()) {
-            this.drawingPanelState.setCachedMousePosition(mouseEvent.getPoint());
-            this.drawingPanelState.setCachedTopLeftReferencePosition(this.drawingAttributes.getTopLeftReferencePoint());
-        }
-
-        if (!this.drawingPanelState.isSpaceDown()) {
-            newDrawableFromSelected(mouseEvent)
-                    .ifPresent(drawable -> {
-                        this.drawingModel.addDrawable(drawable);
-                        this.drawingPanelState.setElementCurrentlyBeingDrawn(drawable);
-                    });
-        }
-
-        this.drawingPanelState.setMouseDown(true);
-        this.repaint();
-    }
-
-    private Optional<Drawable> newDrawableFromSelected(MouseEvent mouseEvent) {
-        Point absoluteCoordinates = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getX(), mouseEvent.getY());
-        return Optional.ofNullable(this.drawingPanelState.getActiveDrawableProducer())
-                .map(selectedDrawable -> selectedDrawable.create(
-                        absoluteCoordinates.x,
-                        absoluteCoordinates.y,
-                        this.drawingAttributes.getSelectedForegroundColor(),
-                        this.drawingAttributes.getSelectedBackgroundColor()));
+        activeMouseListener.mousePressed(mouseEvent);
     }
 
     private void mouseReleased(MouseEvent mouseEvent) {
-        log.info("origin position {}", this.drawingAttributes.getTopLeftReferencePoint());
-
-        this.drawingPanelState.setMouseDown(false);
-        this.drawingPanelState.setElementCurrentlyBeingDrawn(null);
-        this.repaint();
+        activeMouseListener.mouseReleased(mouseEvent);
     }
 
     private void mouseDragged(MouseEvent mouseEvent) {
-        Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
-
-        if (this.drawingPanelState.isSpaceDown()) {
-            Point newTopLeft = updatePositionAccordingToMouseDelta(originLocation, mouseEvent);
-            Point newBottomRight = updatePositionAccordingToMouseDelta(this.drawingAttributes.getBottomRightReferencePoint(), mouseEvent);
-
-            this.drawingAttributes.setTopLeftReferencePoint(newTopLeft);
-            this.drawingAttributes.setBottomRightReferencePoint(newBottomRight);
-            this.drawingPanelState.setCachedMousePosition(mouseEvent.getPoint());
-        } else {
-            Point absoluteCoordinates = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getX(), mouseEvent.getY());
-            Optional.ofNullable(this.drawingPanelState.getElementCurrentlyBeingDrawn())
-                    .ifPresent(element -> element.updateEndingPoint(absoluteCoordinates.x, absoluteCoordinates.y));
-        }
-
-        this.repaint();
-    }
-
-    private Point updatePositionAccordingToMouseDelta(Point currentOrigin, MouseEvent mouseEvent) {
-        // move background opposite to the mouse direction
-        Point mouseEventPoint = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getPoint());
-        Point cachedMousePoint = getCoordinateSystemAbsolutePositionFromScreenPosition(this.drawingPanelState.getCachedMousePosition());
-
-        double deltaX = cachedMousePoint.getX() - mouseEventPoint.getX();
-        double deltaY = mouseEventPoint.getY() - cachedMousePoint.getY();
-
-        currentOrigin.setLocation(currentOrigin.x + deltaX, currentOrigin.y - deltaY);
-        return currentOrigin;
-
+        activeMouseListener.mouseDragged(mouseEvent);
     }
 
     private void keyPressed(KeyEvent keyEvent) {
         if (keyEvent.getKeyCode() == KeyEvent.VK_SPACE) {
-            this.drawingPanelState.setSpaceDown(true);
             this.setCursor(moveCursor);
+            this.activeMouseListener = this.screenTranslateListener;
         }
     }
 
     private void keyReleased(KeyEvent keyEvent) {
         if (keyEvent.getKeyCode() == KeyEvent.VK_SPACE) {
-            this.drawingPanelState.setSpaceDown(false);
             this.setCursor(defaultCursor);
+            this.activeMouseListener = this.drawListener;
         }
     }
 
@@ -158,19 +118,23 @@ public class DrawingPanel extends JPanel {
         Graphics2D graphics2D = (Graphics2D) g;
 
         final Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
-        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
-        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
-        final double scale = (bottomRight.x - topLeft.x) / (double)this.getWidth();
+        final double scale = getScale();
         this.drawingModel.getDrawables().stream()
                 .filter(this::isWithinBounds)
                 .forEach(drawable -> drawable.draw(graphics2D, originLocation.x, originLocation.y, scale));
     }
 
-    private Point getCoordinateSystemAbsolutePositionFromScreenPosition(Point point) {
+    private double getScale() {
+        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
+        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
+        return (bottomRight.x - topLeft.x) / (double) this.getWidth();
+    }
+
+    public Point getCoordinateSystemAbsolutePositionFromScreenPosition(Point point) {
         return this.getCoordinateSystemAbsolutePositionFromScreenPosition(point.x, point.y);
     }
 
-    private Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
+    public Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
         Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
         Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
         double scaleFactorX = (bottomRight.x - topLeft.x) / (double)this.getWidth();
@@ -198,5 +162,4 @@ public class DrawingPanel extends JPanel {
 
         return result;
     }
-
 }
