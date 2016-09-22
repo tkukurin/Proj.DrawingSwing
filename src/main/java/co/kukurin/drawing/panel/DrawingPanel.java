@@ -110,11 +110,11 @@ public class DrawingPanel extends JPanel {
         Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
 
         if (this.drawingPanelState.isSpaceDown()) {
-            this.drawingAttributes.setTopLeftReferencePoint(
-                    updatePositionAccordingToMouseDelta(originLocation, mouseEvent));
-            this.drawingAttributes.setBottomRightReferencePoint(
-                    updatePositionAccordingToMouseDelta(this.drawingAttributes.getBottomRightReferencePoint(), mouseEvent));
+            Point newTopLeft = updatePositionAccordingToMouseDelta(originLocation, mouseEvent);
+            Point newBottomRight = updatePositionAccordingToMouseDelta(this.drawingAttributes.getBottomRightReferencePoint(), mouseEvent);
 
+            this.drawingAttributes.setTopLeftReferencePoint(newTopLeft);
+            this.drawingAttributes.setBottomRightReferencePoint(newBottomRight);
             this.drawingPanelState.setCachedMousePosition(mouseEvent.getPoint());
         } else {
             Point absoluteCoordinates = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getX(), mouseEvent.getY());
@@ -127,7 +127,6 @@ public class DrawingPanel extends JPanel {
 
     private Point updatePositionAccordingToMouseDelta(Point currentOrigin, MouseEvent mouseEvent) {
         // move background opposite to the mouse direction
-        // TODO fix change of drawing point after move
         Point mouseEventPoint = getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getPoint());
         Point cachedMousePoint = getCoordinateSystemAbsolutePositionFromScreenPosition(this.drawingPanelState.getCachedMousePosition());
 
