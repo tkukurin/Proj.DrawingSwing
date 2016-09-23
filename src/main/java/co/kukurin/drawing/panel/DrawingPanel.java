@@ -41,6 +41,8 @@ public class DrawingPanel extends JPanel {
         this.drawListener = drawListener;
         this.screenTranslateListener = screenTranslateListener;
         this.activeMouseListener = drawListener;
+        this.screenTranslateListener.setDrawingPanel(this);
+        this.drawListener.setDrawingPanel(this);
 
         this.setBackground(Color.WHITE);
         this.addComponentListener(ComponentListenerFactory.createResizeListener(this::onResize));
@@ -61,6 +63,31 @@ public class DrawingPanel extends JPanel {
         return this.drawingPanelState.getActiveDrawableProducer();
     }
 
+    public Point getCoordinateSystemAbsolutePositionFromScreenPosition(Point point) {
+        return this.getCoordinateSystemAbsolutePositionFromScreenPosition(point.x, point.y);
+    }
+
+    public Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
+        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
+        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
+        double scaleFactorX = (bottomRight.x - topLeft.x) / (double)this.getWidth();
+        return new Point(
+                (int) (topLeft.x + (screenX) * scaleFactorX),
+                (int) (topLeft.y - (screenY) * scaleFactorX));
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+        Graphics2D graphics2D = (Graphics2D) g;
+
+        final Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
+        final double scale = getScale();
+        this.drawingModel.getDrawables().stream()
+                         .filter(this::isWithinBounds)
+                         .forEach(drawable -> drawable.draw(graphics2D, originLocation.x, originLocation.y, scale));
+    }
+
     private void onResize(ComponentEvent componentEvent) {
         Point bottomRightAfterResize = getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight());
         drawingAttributes.setBottomRightReferencePoint(bottomRightAfterResize);
@@ -68,10 +95,10 @@ public class DrawingPanel extends JPanel {
 
     private void scrollWheelMoved(MouseWheelEvent mouseWheelEvent) {
         int rotation = mouseWheelEvent.getWheelRotation();
-        double scale = this.getWidth() / (double) this.getHeight();
+        double actualWidthToActualHeightScale = this.getWidth() / (double) this.getHeight();
 
         Point currentReference = this.drawingAttributes.getBottomRightReferencePoint();
-        currentReference.x += rotation * 10 * scale;
+        currentReference.x += rotation * 10 * actualWidthToActualHeightScale;
         currentReference.y -= rotation * 10;
 
         Point currentOrigin = this.drawingAttributes.getTopLeftReferencePoint();
@@ -85,15 +112,12 @@ public class DrawingPanel extends JPanel {
         this.repaint();
     }
 
-    // TODO
     private void mousePressed(MouseEvent mouseEvent) {
         activeMouseListener.mousePressed(mouseEvent);
     }
-
     private void mouseReleased(MouseEvent mouseEvent) {
         activeMouseListener.mouseReleased(mouseEvent);
     }
-
     private void mouseDragged(MouseEvent mouseEvent) {
         activeMouseListener.mouseDragged(mouseEvent);
     }
@@ -112,35 +136,10 @@ public class DrawingPanel extends JPanel {
         }
     }
 
-    @Override
-    public void paint(Graphics g) {
-        super.paint(g);
-        Graphics2D graphics2D = (Graphics2D) g;
-
-        final Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
-        final double scale = getScale();
-        this.drawingModel.getDrawables().stream()
-                .filter(this::isWithinBounds)
-                .forEach(drawable -> drawable.draw(graphics2D, originLocation.x, originLocation.y, scale));
-    }
-
     private double getScale() {
         Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
         Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
         return (bottomRight.x - topLeft.x) / (double) this.getWidth();
-    }
-
-    public Point getCoordinateSystemAbsolutePositionFromScreenPosition(Point point) {
-        return this.getCoordinateSystemAbsolutePositionFromScreenPosition(point.x, point.y);
-    }
-
-    public Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
-        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
-        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
-        double scaleFactorX = (bottomRight.x - topLeft.x) / (double)this.getWidth();
-        return new Point(
-                (int) (topLeft.x + (screenX) * scaleFactorX),
-                (int) (topLeft.y - (screenY) * scaleFactorX));
     }
 
     // "almost" working. probably will be fixed when the x:y relationship issue is resolved

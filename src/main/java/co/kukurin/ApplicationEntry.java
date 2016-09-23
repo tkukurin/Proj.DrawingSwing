@@ -28,10 +28,6 @@ public class ApplicationEntry {
         DrawingPanel drawingPanel = new DrawingPanel(drawingModel, drawingPanelState, drawingAttributes, drawListener, screenTranslateListener);
         DrawingAttributesPanel drawingAttributesPanel = new DrawingAttributesPanel(drawingAttributes);
 
-        // TODO get rid of this asap.
-        screenTranslateListener.setDrawingPanel(drawingPanel);
-        drawListener.setDrawingPanel(drawingPanel);
-
         return new Application(drawingPanel, drawingAttributesPanel, preferredSize);
     }
 
