@@ -1,45 +1,45 @@
 package co.kukurin.drawing.panel.mouse;
 
 import co.kukurin.drawing.attributes.DrawingAttributes;
+import co.kukurin.drawing.panel.CoordinateSystem;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
 
 public class DrawingPanelScreenTranslateListener extends DrawingPanelMouseListener {
 
-    private final DrawingAttributes drawingAttributes;
     private Point cachedMousePosition;
+    private final CoordinateSystem referentCoordinateSystem;
 
-    public DrawingPanelScreenTranslateListener(DrawingAttributes drawingAttributes) {
-        this.drawingAttributes = drawingAttributes;
+    public DrawingPanelScreenTranslateListener(DrawingAttributes drawingAttributes,
+                                               CoordinateSystem referentCoordinateSystem) {
+        this.referentCoordinateSystem = referentCoordinateSystem;
         this.cachedMousePosition = null;
     }
 
     @Override
     public void mousePressed(MouseEvent mouseEvent) {
         this.cachedMousePosition = mouseEvent.getPoint();
-        this.drawingPanel.repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent mouseEvent) {
-        Point oldTopLeft = this.drawingAttributes.getTopLeftReferencePoint();
-        Point oldBottomRight = this.drawingAttributes.getBottomRightReferencePoint();
+        Point oldTopLeft = this.referentCoordinateSystem.getTopLeft();
+        Point oldBottomRight = this.referentCoordinateSystem.getBottomRight();
         Point mouseEventPosition = mouseEvent.getPoint();
         Point delta = calculateMouseMoveDelta(this.cachedMousePosition, mouseEventPosition);
 
         Point newTopLeft = moveGivenPointOppositeFromMouseDelta(oldTopLeft, delta);
         Point newBottomRight = moveGivenPointOppositeFromMouseDelta(oldBottomRight, delta);
 
-        this.drawingAttributes.setTopLeftReferencePoint(newTopLeft);
-        this.drawingAttributes.setBottomRightReferencePoint(newBottomRight);
+        this.referentCoordinateSystem.setTopLeft(newTopLeft);
+        this.referentCoordinateSystem.setBottomRight(newBottomRight);
         this.cachedMousePosition = mouseEventPosition;
-        this.drawingPanel.repaint();
     }
 
     private Point calculateMouseMoveDelta(Point cached, Point current) {
-        Point actualCached = this.drawingPanel.getCoordinateSystemAbsolutePositionFromScreenPosition(cached);
-        Point actualCurrent = this.drawingPanel.getCoordinateSystemAbsolutePositionFromScreenPosition(current);
+        Point actualCached = this.referentCoordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(cached);
+        Point actualCurrent = this.referentCoordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(current);
         int deltaX = actualCached.x - actualCurrent.x;
         int deltaY = actualCached.y - actualCurrent.y;
 
@@ -49,7 +49,6 @@ public class DrawingPanelScreenTranslateListener extends DrawingPanelMouseListen
     private Point moveGivenPointOppositeFromMouseDelta(Point currentPoint, Point delta) {
         currentPoint.setLocation(currentPoint.x + delta.x, currentPoint.y + delta.y);
         return currentPoint;
-
     }
 
 }

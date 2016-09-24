@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 @Slf4j
@@ -30,19 +31,22 @@ public class DrawingPanel extends JPanel {
     private final DrawingPanelScreenTranslateListener screenTranslateListener;
     private DrawingPanelMouseListener activeMouseListener;
 
+    private final CoordinateSystem coordinateSystem;
+
     public DrawingPanel(DrawingModel drawingModel,
                         DrawingPanelState drawingPanelState,
                         DrawingAttributes drawingAttributes,
                         DrawingPanelDrawListener drawListener,
-                        DrawingPanelScreenTranslateListener screenTranslateListener) {
+                        DrawingPanelScreenTranslateListener screenTranslateListener,
+                        CoordinateSystem coordinateSystem) {
         this.drawingModel = drawingModel;
         this.drawingAttributes = drawingAttributes;
         this.drawingPanelState = drawingPanelState;
         this.drawListener = drawListener;
         this.screenTranslateListener = screenTranslateListener;
         this.activeMouseListener = drawListener;
-        this.screenTranslateListener.setDrawingPanel(this);
-        this.drawListener.setDrawingPanel(this);
+        this.coordinateSystem = coordinateSystem;
+        this.coordinateSystem.setComponentDimensions(this);
 
         this.setBackground(Color.WHITE);
         this.addComponentListener(ComponentListenerFactory.createResizeListener(this::onResize));
@@ -59,67 +63,73 @@ public class DrawingPanel extends JPanel {
         this.requestFocusInWindow();
     }
 
-    public DrawableProducer getActiveDrawableProducer() {
-        return this.drawingPanelState.getActiveDrawableProducer();
-    }
-
-    public Point getCoordinateSystemAbsolutePositionFromScreenPosition(Point point) {
-        return this.getCoordinateSystemAbsolutePositionFromScreenPosition(point.x, point.y);
-    }
-
-    public Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
-        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
-        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
-        double scaleFactorX = (bottomRight.x - topLeft.x) / (double)this.getWidth();
-        return new Point(
-                (int) (topLeft.x + (screenX) * scaleFactorX),
-                (int) (topLeft.y - (screenY) * scaleFactorX));
-    }
-
     @Override
     public void paint(Graphics g) {
         super.paint(g);
         Graphics2D graphics2D = (Graphics2D) g;
 
-        final Point originLocation = this.drawingAttributes.getTopLeftReferencePoint();
-        final double scale = getScale();
+        final Point originLocation = this.coordinateSystem.getTopLeft();
+        final double scale = this.coordinateSystem.getScale();
         this.drawingModel.getDrawables().stream()
                          .filter(this::isWithinBounds)
                          .forEach(drawable -> drawable.draw(graphics2D, originLocation.x, originLocation.y, scale));
     }
 
+    private boolean isWithinBounds(Drawable drawable) {
+        Rectangle drawableBounds = drawable.getAbsolutePositionedBoundingBox();
+        Point topLeft = this.coordinateSystem.getTopLeft();
+        Point bottomRight = this.coordinateSystem.getBottomRight();
+
+        Predicate<Integer> isWithinXBounds = i -> i >= topLeft.x && i <= bottomRight.x;
+        Predicate<Integer> isWithinYBounds = i -> i <= topLeft.y && i >= bottomRight.y;
+
+        boolean drawableXLargerThanScreen = (drawableBounds.x <= topLeft.x && drawableBounds.x + drawableBounds.width >= bottomRight.x);
+        boolean drawableYLargerThanScreen = (-drawableBounds.y >= topLeft.y && -drawableBounds.y - drawableBounds.height <= bottomRight.y);
+        boolean startingXOrEndingXWithinViewBounds = isWithinXBounds.test(drawableBounds.x) || isWithinXBounds.test(drawableBounds.x + drawableBounds.width);
+        boolean startingYOrEndingYWithinViewBounds = isWithinYBounds.test(-drawableBounds.y) || isWithinYBounds.test(-drawableBounds.y - drawableBounds.height);
+
+        boolean result = (startingXOrEndingXWithinViewBounds || drawableXLargerThanScreen)
+                && (startingYOrEndingYWithinViewBounds || drawableYLargerThanScreen);
+
+        return result;
+    }
+
     private void onResize(ComponentEvent componentEvent) {
-        Point bottomRightAfterResize = getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight());
-        drawingAttributes.setBottomRightReferencePoint(bottomRightAfterResize);
+        this.coordinateSystem.setComponentDimensions(this);
+        this.coordinateSystem.setBottomRight(this.coordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight()));
     }
 
     private void scrollWheelMoved(MouseWheelEvent mouseWheelEvent) {
         int rotation = mouseWheelEvent.getWheelRotation();
         double actualWidthToActualHeightScale = this.getWidth() / (double) this.getHeight();
 
-        Point currentReference = this.drawingAttributes.getBottomRightReferencePoint();
+        Point currentReference = this.coordinateSystem.getBottomRight();
         currentReference.x += rotation * 10 * actualWidthToActualHeightScale;
         currentReference.y -= rotation * 10;
 
-        Point currentOrigin = this.drawingAttributes.getTopLeftReferencePoint();
+        Point currentOrigin = this.coordinateSystem.getTopLeft();
         boolean leftXIsSmallerThanRightX = currentOrigin.x < currentReference.x;
         boolean topYIsLargerThanBottomY = currentOrigin.y > currentReference.y;
 
         if(leftXIsSmallerThanRightX && topYIsLargerThanBottomY) {
-            this.drawingAttributes.setBottomRightReferencePoint(currentReference);
+            this.coordinateSystem.setBottomRight(currentReference);
         }
 
         this.repaint();
     }
-
     private void mousePressed(MouseEvent mouseEvent) {
+        this.coordinateSystem.updateScale(this);
         activeMouseListener.mousePressed(mouseEvent);
+        this.repaint();
     }
     private void mouseReleased(MouseEvent mouseEvent) {
         activeMouseListener.mouseReleased(mouseEvent);
+        this.repaint();
     }
+
     private void mouseDragged(MouseEvent mouseEvent) {
         activeMouseListener.mouseDragged(mouseEvent);
+        this.repaint();
     }
 
     private void keyPressed(KeyEvent keyEvent) {
@@ -134,31 +144,5 @@ public class DrawingPanel extends JPanel {
             this.setCursor(defaultCursor);
             this.activeMouseListener = this.drawListener;
         }
-    }
-
-    private double getScale() {
-        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
-        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
-        return (bottomRight.x - topLeft.x) / (double) this.getWidth();
-    }
-
-    // "almost" working. probably will be fixed when the x:y relationship issue is resolved
-    private boolean isWithinBounds(Drawable drawable) {
-        Rectangle drawableBounds = drawable.getAbsolutePositionedBoundingBox();
-        Point topLeft = this.drawingAttributes.getTopLeftReferencePoint();
-        Point bottomRight = this.drawingAttributes.getBottomRightReferencePoint();
-
-        Predicate<Integer> testX = i -> i >= topLeft.x && i <= bottomRight.x;
-        Predicate<Integer> testY = i -> i <= topLeft.y && i >= bottomRight.y;
-
-        boolean drawableXLargerThanScreen = (drawableBounds.x <= topLeft.x && drawableBounds.x + drawableBounds.width >= bottomRight.x);
-        boolean drawableYLargerThanScreen = (-drawableBounds.y >= topLeft.y && -drawableBounds.y - drawableBounds.height <= bottomRight.y);
-        boolean startingXOrEndingXWithinViewBounds = testX.test(drawableBounds.x) || testX.test(drawableBounds.x + drawableBounds.width);
-        boolean startingYOrEndingYWithinViewBounds = testY.test(-drawableBounds.y) || testY.test(-drawableBounds.y - drawableBounds.height);
-
-        boolean result = (startingXOrEndingXWithinViewBounds || drawableXLargerThanScreen)
-                && (startingYOrEndingYWithinViewBounds || drawableYLargerThanScreen);
-
-        return result;
     }
 }

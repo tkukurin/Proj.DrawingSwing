@@ -17,15 +17,23 @@ public class ApplicationEntry {
     }
 
     private static Application defaultApplication() {
-        DrawingModel drawingModel = new DrawingModelImpl();
+
         Dimension preferredSize = new Dimension(600, 600);
         Point origin = new Point(0, 0); // TODO turn into rectangle
         Point endpoint = new Point(preferredSize.width, -preferredSize.height);
-        DrawingAttributes drawingAttributes = new DrawingAttributes(origin, endpoint, Color.BLACK, Color.WHITE);
+        CoordinateSystem coordinateSystem = new CoordinateSystem(origin, endpoint);
+
+        DrawingAttributes drawingAttributes = new DrawingAttributes(Color.BLACK, Color.WHITE);
         DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableRectangle::new, null, origin, null, false, false);
-        DrawingPanelDrawListener drawListener = new DrawingPanelDrawListener(drawingModel, drawingAttributes);
-        DrawingPanelScreenTranslateListener screenTranslateListener = new DrawingPanelScreenTranslateListener(drawingAttributes);
-        DrawingPanel drawingPanel = new DrawingPanel(drawingModel, drawingPanelState, drawingAttributes, drawListener, screenTranslateListener);
+        DrawingModel drawingModel = new DrawingModelImpl();
+
+        DrawingPanelDrawListener drawListener = new DrawingPanelDrawListener(
+                drawingModel, drawingAttributes, coordinateSystem, drawingPanelState);
+        DrawingPanelScreenTranslateListener screenTranslateListener = new DrawingPanelScreenTranslateListener(
+                drawingAttributes, coordinateSystem);
+
+        DrawingPanel drawingPanel = new DrawingPanel(
+                drawingModel, drawingPanelState, drawingAttributes, drawListener, screenTranslateListener, coordinateSystem);
         DrawingAttributesPanel drawingAttributesPanel = new DrawingAttributesPanel(drawingAttributes);
 
         return new Application(drawingPanel, drawingAttributesPanel, preferredSize);
