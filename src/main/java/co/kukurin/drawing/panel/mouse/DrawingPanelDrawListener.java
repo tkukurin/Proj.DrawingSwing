@@ -53,6 +53,5 @@ public class DrawingPanelDrawListener extends DrawingPanelMouseListener {
         Point absoluteCoordinates = this.referentCoordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(mouseEvent.getPoint());
         Optional.ofNullable(this.elementCurrentlyBeingDrawn)
                 .ifPresent(element -> element.updateEndingPoint(absoluteCoordinates.x, absoluteCoordinates.y));
-        //this.drawingPanel.repaint();
     }
 }

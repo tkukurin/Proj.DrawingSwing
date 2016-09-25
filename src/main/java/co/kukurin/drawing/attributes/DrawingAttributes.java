@@ -11,8 +11,6 @@ import java.awt.*;
 @AllArgsConstructor
 public class DrawingAttributes {
 
-//    private Point topLeftReferencePoint;
-//    private Point bottomRightReferencePoint;
     private Color selectedForegroundColor;
     private Color selectedBackgroundColor;
 

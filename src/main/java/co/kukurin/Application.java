@@ -21,7 +21,7 @@ public class Application extends JFrame {
         this.drawingPanel = drawingPanel;
         this.drawingAttributesPanel = drawingAttributesPanel;
 
-        initLayout(drawingPanel, drawingAttributesPanel, preferredSize);
+        this.initLayout(drawingPanel, drawingAttributesPanel, preferredSize);
         this.transferFocusDownCycle();
         this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         this.setVisible(true);

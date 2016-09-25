@@ -15,9 +15,9 @@ public class DrawingPanelState {
 
     private DrawableProducer activeDrawableProducer;
     private Drawable elementCurrentlyBeingDrawn;
-    private Point cachedMousePosition;
-    private Point cachedTopLeftReferencePosition;
-    private boolean isMouseDown;
-    private boolean isSpaceDown;
+
+    public DrawingPanelState(DrawableProducer activeDrawableProducer) {
+        this.activeDrawableProducer = activeDrawableProducer;
+    }
 
 }

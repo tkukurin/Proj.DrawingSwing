@@ -19,18 +19,17 @@ public class ApplicationEntry {
     private static Application defaultApplication() {
 
         Dimension preferredSize = new Dimension(600, 600);
-        Point origin = new Point(0, 0); // TODO turn into rectangle
+        Point origin = new Point(0, 0);
         Point endpoint = new Point(preferredSize.width, -preferredSize.height);
         CoordinateSystem coordinateSystem = new CoordinateSystem(origin, endpoint);
 
         DrawingAttributes drawingAttributes = new DrawingAttributes(Color.BLACK, Color.WHITE);
-        DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableRectangle::new, null, origin, null, false, false);
+        DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableRectangle::new);
         DrawingModel drawingModel = new DrawingModelImpl();
 
         DrawingPanelDrawListener drawListener = new DrawingPanelDrawListener(
                 drawingModel, drawingAttributes, coordinateSystem, drawingPanelState);
-        DrawingPanelScreenTranslateListener screenTranslateListener = new DrawingPanelScreenTranslateListener(
-                drawingAttributes, coordinateSystem);
+        DrawingPanelScreenTranslateListener screenTranslateListener = new DrawingPanelScreenTranslateListener(coordinateSystem);
 
         DrawingPanel drawingPanel = new DrawingPanel(
                 drawingModel, drawingPanelState, drawingAttributes, drawListener, screenTranslateListener, coordinateSystem);

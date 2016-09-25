@@ -12,8 +12,7 @@ public class DrawingPanelScreenTranslateListener extends DrawingPanelMouseListen
     private Point cachedMousePosition;
     private final CoordinateSystem referentCoordinateSystem;
 
-    public DrawingPanelScreenTranslateListener(DrawingAttributes drawingAttributes,
-                                               CoordinateSystem referentCoordinateSystem) {
+    public DrawingPanelScreenTranslateListener(CoordinateSystem referentCoordinateSystem) {
         this.referentCoordinateSystem = referentCoordinateSystem;
         this.cachedMousePosition = null;
     }

@@ -21,15 +21,16 @@ public class DrawingPanel extends JPanel {
 
     private static final Cursor moveCursor = new Cursor(Cursor.MOVE_CURSOR);
     private static final Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
+    private static final int SCALE_DELTA_ON_SCROLL = 10;
 
-    private DrawingAttributes drawingAttributes;
-    private DrawingPanelState drawingPanelState;
-    private DrawingModel drawingModel;
-
+    private final DrawingAttributes drawingAttributes;
+    private final DrawingPanelState drawingPanelState;
+    private final DrawingModel drawingModel;
     private final DrawingPanelDrawListener drawListener;
     private final DrawingPanelScreenTranslateListener screenTranslateListener;
-    private DrawingPanelMouseListener activeMouseListener;
     private final CoordinateSystem coordinateSystem;
+
+    private DrawingPanelMouseListener activeMouseListener;
 
     public DrawingPanel(DrawingModel drawingModel,
                         DrawingPanelState drawingPanelState,
@@ -45,7 +46,7 @@ public class DrawingPanel extends JPanel {
         this.activeMouseListener = drawListener;
         this.coordinateSystem = coordinateSystem;
 
-        this.setBackground(Color.WHITE);
+        this.setBackground(drawingAttributes.getSelectedBackgroundColor());
         this.addComponentListener(ComponentListenerFactory.createResizeListener(this::onResize));
         this.addMouseWheelListener(this::scrollWheelMoved);
         this.addMouseMotionListener(MouseListenerFactory.createMouseDragListener(this::mouseDragged));
@@ -65,8 +66,9 @@ public class DrawingPanel extends JPanel {
             this.coordinateSystem.updateScale(this);
         }
 
-        Point br = this.coordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight());
-        this.coordinateSystem.setBottomRight(br);
+        Point newBottomRight = this.coordinateSystem
+                .getCoordinateSystemAbsolutePositionFromScreenPosition(this.getWidth(), this.getHeight());
+        this.coordinateSystem.setBottomRight(newBottomRight);
         this.coordinateSystem.setComponentDimensions(this);
     }
 
@@ -106,8 +108,8 @@ public class DrawingPanel extends JPanel {
         double actualWidthToActualHeightScale = this.getWidth() / (double) this.getHeight();
 
         Point currentReference = this.coordinateSystem.getBottomRight();
-        currentReference.x += rotation * 10 * actualWidthToActualHeightScale;
-        currentReference.y -= rotation * 10;
+        currentReference.x += rotation * SCALE_DELTA_ON_SCROLL * actualWidthToActualHeightScale;
+        currentReference.y -= rotation * SCALE_DELTA_ON_SCROLL;
 
         Point currentOrigin = this.coordinateSystem.getTopLeft();
         boolean leftXIsSmallerThanRightX = currentOrigin.x < currentReference.x;
@@ -122,16 +124,16 @@ public class DrawingPanel extends JPanel {
     }
 
     private void mousePressed(MouseEvent mouseEvent) {
-        activeMouseListener.mousePressed(mouseEvent);
+        this.activeMouseListener.mousePressed(mouseEvent);
         this.repaint();
     }
     private void mouseReleased(MouseEvent mouseEvent) {
-        activeMouseListener.mouseReleased(mouseEvent);
+        this.activeMouseListener.mouseReleased(mouseEvent);
         this.repaint();
     }
 
     private void mouseDragged(MouseEvent mouseEvent) {
-        activeMouseListener.mouseDragged(mouseEvent);
+        this.activeMouseListener.mouseDragged(mouseEvent);
         this.repaint();
     }
 

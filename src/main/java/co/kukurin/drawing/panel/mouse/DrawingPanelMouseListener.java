@@ -7,7 +7,4 @@ import java.awt.event.MouseAdapter;
 
 public class DrawingPanelMouseListener extends MouseAdapter {
 
-    @Setter
-    protected DrawingPanel drawingPanel;
-
 }
