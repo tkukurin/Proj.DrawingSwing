@@ -1,11 +1,11 @@
 package co.kukurin.drawing.panel;
 
 import co.kukurin.actions.ComponentListenerFactory;
+import co.kukurin.custom.Optional;
 import co.kukurin.drawing.attributes.DrawingAttributes;
 import co.kukurin.actions.KeyListenerFactory;
 import co.kukurin.actions.MouseListenerFactory;
 import co.kukurin.drawing.drawables.Drawable;
-import co.kukurin.drawing.drawables.DrawableProducer;
 import co.kukurin.drawing.panel.mouse.DrawingPanelDrawListener;
 import co.kukurin.drawing.panel.mouse.DrawingPanelMouseListener;
 import co.kukurin.drawing.panel.mouse.DrawingPanelScreenTranslateListener;
@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 @Slf4j
@@ -32,6 +31,9 @@ public class DrawingPanel extends JPanel {
     private DrawingPanelMouseListener activeMouseListener;
 
     private final CoordinateSystem coordinateSystem;
+    private Rectangle cachedDimensions;
+    private double cachedScale;
+    private boolean doUpdate;
 
     public DrawingPanel(DrawingModel drawingModel,
                         DrawingPanelState drawingPanelState,
@@ -47,6 +49,7 @@ public class DrawingPanel extends JPanel {
         this.activeMouseListener = drawListener;
         this.coordinateSystem = coordinateSystem;
         this.coordinateSystem.setComponentDimensions(this);
+        this.doUpdate = true;
 
         this.setBackground(Color.WHITE);
         this.addComponentListener(ComponentListenerFactory.createResizeListener(this::onResize));
@@ -63,13 +66,24 @@ public class DrawingPanel extends JPanel {
         this.requestFocusInWindow();
     }
 
+    private void onResize(ComponentEvent componentEvent) {
+        doUpdate = true;
+    }
+
     @Override
     public void paint(Graphics g) {
         super.paint(g);
-        Graphics2D graphics2D = (Graphics2D) g;
 
+        if(doUpdate) {
+            Point br = this.coordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight());
+            this.coordinateSystem.setBottomRight(br);
+            this.coordinateSystem.setComponentDimensions(this);
+            doUpdate = false;
+        }
+
+        Graphics2D graphics2D = (Graphics2D) g;
         final Point originLocation = this.coordinateSystem.getTopLeft();
-        final double scale = this.coordinateSystem.getScale();
+        final double scale = this.coordinateSystem.getScaleX();
         this.drawingModel.getDrawables().stream()
                          .filter(this::isWithinBounds)
                          .forEach(drawable -> drawable.draw(graphics2D, originLocation.x, originLocation.y, scale));
@@ -94,11 +108,6 @@ public class DrawingPanel extends JPanel {
         return result;
     }
 
-    private void onResize(ComponentEvent componentEvent) {
-        this.coordinateSystem.setComponentDimensions(this);
-        this.coordinateSystem.setBottomRight(this.coordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight()));
-    }
-
     private void scrollWheelMoved(MouseWheelEvent mouseWheelEvent) {
         int rotation = mouseWheelEvent.getWheelRotation();
         double actualWidthToActualHeightScale = this.getWidth() / (double) this.getHeight();
@@ -113,12 +122,13 @@ public class DrawingPanel extends JPanel {
 
         if(leftXIsSmallerThanRightX && topYIsLargerThanBottomY) {
             this.coordinateSystem.setBottomRight(currentReference);
+            this.coordinateSystem.updateScale(this);
         }
 
         this.repaint();
     }
+
     private void mousePressed(MouseEvent mouseEvent) {
-        this.coordinateSystem.updateScale(this);
         activeMouseListener.mousePressed(mouseEvent);
         this.repaint();
     }

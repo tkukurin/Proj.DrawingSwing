@@ -5,6 +5,7 @@ import co.kukurin.drawing.panel.CoordinateSystem;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 
 public class DrawingPanelScreenTranslateListener extends DrawingPanelMouseListener {
 

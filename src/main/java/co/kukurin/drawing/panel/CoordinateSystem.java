@@ -16,6 +16,8 @@ public class CoordinateSystem {
     @Getter
     private Rectangle componentDimensions;
 
+    private double scale;
+
     public CoordinateSystem(Point topLeft, Point bottomRight) {
         this.topLeft = topLeft;
         this.bottomRight = bottomRight;
@@ -26,10 +28,9 @@ public class CoordinateSystem {
     }
 
     public Point getCoordinateSystemAbsolutePositionFromScreenPosition(int screenX, int screenY) {
-        double scaleFactorX = (bottomRight.x - topLeft.x) / componentDimensions.getWidth();
         return new Point(
-                (int) (topLeft.x + screenX * scaleFactorX),
-                (int) (topLeft.y - screenY * scaleFactorX));
+                (int) (topLeft.x + screenX * getScaleX()),
+                (int) (topLeft.y - screenY * getScaleX()));
     }
 
     public void setComponentDimensions(Component component) {
@@ -38,9 +39,18 @@ public class CoordinateSystem {
 
     public void updateScale(Component component) {
         this.componentDimensions = component.getBounds(this.componentDimensions);
+        this.scale = (this.bottomRight.x - this.topLeft.x) / this.componentDimensions.getWidth();
     }
 
-    public double getScale() {
-        return (this.bottomRight.x - this.topLeft.x) / this.componentDimensions.getWidth();
+//    public double getScaleX() {
+//        return (this.bottomRight.x - this.topLeft.x) / this.componentDimensions.getWidth();
+//    }
+
+    public double getScaleX() {
+        return this.scale;
+    }
+
+    public double getScaleY() {
+        return (-this.bottomRight.y + this.topLeft.y) / this.componentDimensions.getHeight();
     }
 }
