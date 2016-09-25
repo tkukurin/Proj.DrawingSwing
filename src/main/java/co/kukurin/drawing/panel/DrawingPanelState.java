@@ -10,11 +10,9 @@ import java.awt.*;
 
 @Getter
 @Setter
-@AllArgsConstructor
 public class DrawingPanelState {
 
     private DrawableProducer activeDrawableProducer;
-    private Drawable elementCurrentlyBeingDrawn;
 
     public DrawingPanelState(DrawableProducer activeDrawableProducer) {
         this.activeDrawableProducer = activeDrawableProducer;
