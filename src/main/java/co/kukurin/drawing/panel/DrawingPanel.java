@@ -30,8 +30,6 @@ public class DrawingPanel extends JPanel {
     private final DrawingPanelScreenTranslateListener screenTranslateListener;
     private final CoordinateSystem coordinateSystem;
 
-    private DrawingPanelMouseListener activeMouseListener;
-
     public DrawingPanel(DrawingModel drawingModel,
                         DrawingPanelState drawingPanelState,
                         DrawingAttributes drawingAttributes,
@@ -43,8 +41,8 @@ public class DrawingPanel extends JPanel {
         this.drawingPanelState = drawingPanelState;
         this.drawListener = drawListener;
         this.screenTranslateListener = screenTranslateListener;
-        this.activeMouseListener = drawListener;
         this.coordinateSystem = coordinateSystem;
+        this.drawingPanelState.setActiveMouseListener(this.drawListener);
 
         this.setBackground(drawingAttributes.getSelectedBackgroundColor());
         this.addComponentListener(ComponentListenerFactory.createResizeListener(this::onResize));
@@ -124,30 +122,30 @@ public class DrawingPanel extends JPanel {
     }
 
     private void mousePressed(MouseEvent mouseEvent) {
-        this.activeMouseListener.mousePressed(mouseEvent);
+        this.drawingPanelState.getActiveMouseListener().mousePressed(mouseEvent);
         this.repaint();
     }
     private void mouseReleased(MouseEvent mouseEvent) {
-        this.activeMouseListener.mouseReleased(mouseEvent);
+        this.drawingPanelState.getActiveMouseListener().mouseReleased(mouseEvent);
         this.repaint();
     }
 
     private void mouseDragged(MouseEvent mouseEvent) {
-        this.activeMouseListener.mouseDragged(mouseEvent);
+        this.drawingPanelState.getActiveMouseListener().mouseDragged(mouseEvent);
         this.repaint();
     }
 
     private void keyPressed(KeyEvent keyEvent) {
         if (keyEvent.getKeyCode() == KeyEvent.VK_SPACE) {
             this.setCursor(moveCursor);
-            this.activeMouseListener = this.screenTranslateListener;
+            this.drawingPanelState.setActiveMouseListener(this.screenTranslateListener);
         }
     }
 
     private void keyReleased(KeyEvent keyEvent) {
         if (keyEvent.getKeyCode() == KeyEvent.VK_SPACE) {
             this.setCursor(defaultCursor);
-            this.activeMouseListener = this.drawListener;
+            this.drawingPanelState.setActiveMouseListener(this.drawListener);
         }
     }
 }

@@ -54,4 +54,9 @@ public class DrawingPanelDrawListener extends DrawingPanelMouseListener {
         Optional.ofNullable(this.elementCurrentlyBeingDrawn)
                 .ifPresent(element -> element.updateEndingPoint(absoluteCoordinates.x, absoluteCoordinates.y));
     }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        this.elementCurrentlyBeingDrawn = null;
+    }
 }
