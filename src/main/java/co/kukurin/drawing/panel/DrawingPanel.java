@@ -29,11 +29,7 @@ public class DrawingPanel extends JPanel {
     private final DrawingPanelDrawListener drawListener;
     private final DrawingPanelScreenTranslateListener screenTranslateListener;
     private DrawingPanelMouseListener activeMouseListener;
-
     private final CoordinateSystem coordinateSystem;
-    private Rectangle cachedDimensions;
-    private double cachedScale;
-    private boolean doUpdate;
 
     public DrawingPanel(DrawingModel drawingModel,
                         DrawingPanelState drawingPanelState,
@@ -48,8 +44,6 @@ public class DrawingPanel extends JPanel {
         this.screenTranslateListener = screenTranslateListener;
         this.activeMouseListener = drawListener;
         this.coordinateSystem = coordinateSystem;
-        this.coordinateSystem.setComponentDimensions(this);
-        this.doUpdate = true;
 
         this.setBackground(Color.WHITE);
         this.addComponentListener(ComponentListenerFactory.createResizeListener(this::onResize));
@@ -67,19 +61,18 @@ public class DrawingPanel extends JPanel {
     }
 
     private void onResize(ComponentEvent componentEvent) {
-        doUpdate = true;
+        if(this.coordinateSystem.getComponentDimensions() == null) {
+            this.coordinateSystem.updateScale(this);
+        }
+
+        Point br = this.coordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight());
+        this.coordinateSystem.setBottomRight(br);
+        this.coordinateSystem.setComponentDimensions(this);
     }
 
     @Override
     public void paint(Graphics g) {
         super.paint(g);
-
-        if(doUpdate) {
-            Point br = this.coordinateSystem.getCoordinateSystemAbsolutePositionFromScreenPosition(getWidth(), getHeight());
-            this.coordinateSystem.setBottomRight(br);
-            this.coordinateSystem.setComponentDimensions(this);
-            doUpdate = false;
-        }
 
         Graphics2D graphics2D = (Graphics2D) g;
         final Point originLocation = this.coordinateSystem.getTopLeft();
