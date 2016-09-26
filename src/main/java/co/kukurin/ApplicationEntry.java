@@ -1,6 +1,7 @@
 package co.kukurin;
 
 import co.kukurin.drawing.attributes.DrawingAttributes;
+import co.kukurin.drawing.drawables.DrawableCircle;
 import co.kukurin.drawing.drawables.DrawableRectangle;
 import co.kukurin.drawing.attributes.DrawingAttributesPanel;
 import co.kukurin.drawing.panel.*;
@@ -24,7 +25,7 @@ public class ApplicationEntry {
         CoordinateSystem coordinateSystem = new CoordinateSystem(origin, endpoint);
 
         DrawingAttributes drawingAttributes = new DrawingAttributes(Color.BLACK, Color.WHITE);
-        DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableRectangle::new);
+        DrawingPanelState drawingPanelState = new DrawingPanelState(DrawableCircle::new);
         DrawingModel drawingModel = new DrawingModelImpl();
 
         DrawingPanelDrawListener drawListener = new DrawingPanelDrawListener(
